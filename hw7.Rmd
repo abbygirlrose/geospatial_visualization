@@ -1,0 +1,110 @@
+---
+title: "Practicing Mapping"
+author: "Abby Bergman"
+date: "11/14/2018"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#load packages
+library(tidyverse)
+library(ggmap)
+library(RColorBrewer)
+library(gridExtra)
+library(fiftystater)
+library(rscorecard)
+library(knitr)
+library(dplyr)
+library(dbplyr)
+library(RSQLite)
+library(sf)
+```
+
+```{r}
+#get SQL
+
+getSQL <- function(filepath){
+  con = file(filepath, "r")
+  sql.string <- ""
+  while (TRUE){
+    line <- readLines(con, n = 1)
+    if ( length(line) == 0 ){
+      break
+    }
+    line <- gsub("\\t", " ", line)
+    if(grepl("--",line) == TRUE){
+      line <- paste(sub("--","/*",line),"*/")
+    }
+    sql.string <- paste(sql.string, line)
+  }
+  close(con)
+  return(sql.string)
+}
+
+getSQL("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2018/Computing/Homework/hw7/RDS-2013-0009.4_SQLite2/Data/FPA_FOD_20170508.sqlite")
+```
+
+
+```{r}
+#USA data
+data("fifty_states")
+as_tibble(fifty_states) 
+
+#make simple feature
+st_as_sf(fifty_states, coords = c("long", "lat"))%>% 
+  
+  # convert fifty_states to an sf data frame
+  (sf_fifty <- st_as_sf(fifty_states, coords = c("long", "lat")) %>% 
+     # convert sets of points to polygons
+     group_by(id, piece) %>% 
+     summarize(do_union = FALSE) %>%
+     st_cast("POLYGON") %>%
+     # convert polygons to multipolygons for states with discontinuous regions
+     group_by(id) %>%
+     summarize())
+
+ggplot(data = sf_fifty) +
+  geom_sf()
+```
+```{r}
+#setting up scorecard data
+library(rscorecard)
+
+ 
+```
+
+
+```{r}
+#import usa
+usa <- st_read("data/census_bureau/cb_2013_us_state_20m/cb_2013_us_state_20m.shp")
+
+#import school data
+schools_by_state <- read.csv("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2018/Computing/Homework/hw7/schools_by_state.csv")
+
+
+# convert fifty_states to an sf data frame
+(sf_fifty <- st_as_sf(fifty_states, coords = c("long", "lat")) %>% 
+   # convert sets of points to polygons
+   group_by(id, piece) %>% 
+   summarize(do_union = FALSE) %>%
+   st_cast("POLYGON") %>%
+   # convert polygons to multipolygons for states with discontinuous regions
+   group_by(id) %>%
+   summarize())
+
+#need to do left join
+combined <-left_join(schools_by_state %>% mutate(id = tolower(id)), sf_fifty, by = "id")
+
+X %>% left_join(Y %>% mutate(id = tolower(id)), by = "id")
+
+View(combined$geometry)
+#graph
+
+ggplot(data = combined) +
+  geom_sf(aes(fill = total))
+
+```
