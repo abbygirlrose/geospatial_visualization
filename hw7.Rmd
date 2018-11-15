@@ -83,7 +83,9 @@ library(rscorecard)
 usa <- st_read("data/census_bureau/cb_2013_us_state_20m/cb_2013_us_state_20m.shp")
 
 #import school data
-schools_by_state <- read.csv("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2018/Computing/Homework/hw7/schools_by_state.csv")
+schools_by_state <- read_csv("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2018/Computing/Homework/hw7/schools_by_state.csv")
+
+population <- read_csv("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2018/Computing/Homework/hw7/population.csv")
 
 
 # convert fifty_states to an sf data frame
@@ -97,14 +99,31 @@ schools_by_state <- read.csv("/Users/AbigailBergman/Desktop/Grad School/Fall Qua
    summarize())
 
 #need to do left join
-combined <-left_join(schools_by_state %>% mutate(id = tolower(id)), sf_fifty, by = "id")
+combined1 <-left_join(schools_by_state %>% mutate(id = tolower(id)), sf_fifty, by = "id")
 
-X %>% left_join(Y %>% mutate(id = tolower(id)), by = "id")
+combined <-left_join(combined1, population %>% mutate(id = tolower(id)), by = "id")
 
-View(combined$geometry)
+combined <- combined %>%
+  mutate(per_capita = total/`2018 Population`)
+
 #graph
 
 ggplot(data = combined) +
-  geom_sf(aes(fill = total))
+  geom_sf(aes(fill = per_capita))
+
+ggplot(data = combined1)+
+  geom_sf(aes(fill = total)) + 
+  labs(title = "Map of USA, Number of Colleges by State")
+
+#bin data
+combined %>%
+  mutate(capita_cut = cut_interval(per_capita, 4))%>%
+  ggplot() +
+  geom_sf(aes(fill = capita_cut))
+
+combined1 %>%
+  mutate(total_cut = cut_interval(total, 4))%>%
+  ggplot() +
+  geom_sf(aes(fill = total_cut))
 
 ```
