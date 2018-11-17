@@ -25,7 +25,7 @@ library(sf)
 library(viridis)
 ```
 
-```{r}
+
 #USA data
 data("fifty_states")
 as_tibble(fifty_states) 
@@ -45,18 +45,11 @@ st_as_sf(fifty_states, coords = c("long", "lat"))%>%
 
 ggplot(data = sf_fifty) +
   geom_sf()
-```
-```{r}
-#setting up scorecard data
-library(rscorecard)
 
- 
-```
+
 
 
 ```{r}
-#import usa
-usa <- st_read("data/census_bureau/cb_2013_us_state_20m/cb_2013_us_state_20m.shp")
 
 #import school data
 schools_by_state <- read_csv("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2018/Computing/Homework/hw7/schools_by_state.csv")
@@ -75,7 +68,9 @@ population <- read_csv("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2
    summarize())
 
 #need to do left join
-combined1 <-left_join(schools_by_state %>% mutate(id = tolower(id)), sf_fifty, by = "id")
+combined1 <-left_join(schools_by_state %>% mutate(id = tolower(id)), sf_fifty, by = "id") %>%
+  filter(abb != "AK") %>%
+  filter(abb != "HI")
 
 combined <-left_join(combined1, population %>% mutate(id = tolower(id)), by = "id")
 
@@ -100,16 +95,15 @@ combined %>%
        subtitle = "Divided by State Population") +
   guides(fill=guide_legend(title="Number of Universities Per Person"))
 
-viridis_base <- combined1 %>%
+combined1 %>%
   mutate(total_cut = cut_number(total, 4))%>%
   ggplot() +
   geom_sf(aes(fill = total_cut)) +
-  labs(title = "Number of Universities in each State") + 
-  guides(fill=guide_legend(title="Number of Universities")) +
-  scale_color_viridis(option ="cividis", labels = scales::dollar)
+  labs(title = "Number of Universities in each State")
 
 
 display.brewer.all(type = "div")
+
 ```
 
 
@@ -118,7 +112,44 @@ display.brewer.all(type = "div")
 
 col_shape <- st_read("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2018/Computing/Homework/hw7/CollegesUniversities/CollegesUniversities.shp")
 
-ggplot(data = col_shape) +
+#get rid of alaska and hawaii
+college_shape <- col_shape %>%
+  filter(COUNTRY == "US") %>%
+  filter(LSTATE != "HI") %>%
+  filter(LSTATE != "AK")
+
+ggplot(data = college_shape) +
   geom_sf()
 
+st_as_sf(fifty_states, coords = c("long", "lat")) %>% 
+  # convert sets of points to polygons
+  group_by(id, piece) %>% 
+  summarize(do_union = FALSE) %>%
+  st_cast("POLYGON")%>%
+  group_by(id) %>%
+  summarize()
+
+st_crs(sf_fifty) <- 4326
+
+ggplot(data = combined1) +
+  geom_sf() +
+  geom_point(data = college_shape, aes(LON, LAT)) 
+
+#map with total by color and points for enrollment
+combined1 %>%
+  mutate(total_cut = cut_number(total, 4))%>%
+  ggplot() +
+  geom_sf(aes(fill = total_cut)) +
+  labs(title = "Number of Universities in each State") + 
+  geom_point(data = college_shape, aes(x = LON, y = LAT, size = TOT_ENROLL), shape = 1, fill = "grey", alpha = .15)
+
+#find out how to remove alaska and hawaii
+#why isnt total enrollment changing the size
+
+#blank map with colleges
+ggplot(data = sf_fifty) +
+  geom_sf() +
+  labs(title = "Number of Universities in each State") + 
+  geom_point(data = college_shape, aes(x = LON, y = LAT, size = TOT_ENROLL), alpha = .1, shape = 1)
 ```
+For this assignment, I was interested in exploring the density of universities in different states. 
