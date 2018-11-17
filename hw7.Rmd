@@ -22,32 +22,8 @@ library(dplyr)
 library(dbplyr)
 library(RSQLite)
 library(sf)
+library(viridis)
 ```
-
-```{r}
-#get SQL
-
-getSQL <- function(filepath){
-  con = file(filepath, "r")
-  sql.string <- ""
-  while (TRUE){
-    line <- readLines(con, n = 1)
-    if ( length(line) == 0 ){
-      break
-    }
-    line <- gsub("\\t", " ", line)
-    if(grepl("--",line) == TRUE){
-      line <- paste(sub("--","/*",line),"*/")
-    }
-    sql.string <- paste(sql.string, line)
-  }
-  close(con)
-  return(sql.string)
-}
-
-getSQL("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2018/Computing/Homework/hw7/RDS-2013-0009.4_SQLite2/Data/FPA_FOD_20170508.sqlite")
-```
-
 
 ```{r}
 #USA data
@@ -117,13 +93,32 @@ ggplot(data = combined1)+
 
 #bin data
 combined %>%
-  mutate(capita_cut = cut_interval(per_capita, 4))%>%
+  mutate(capita_cut = cut_number(per_capita, 4))%>%
   ggplot() +
-  geom_sf(aes(fill = capita_cut))
+  geom_sf(aes(fill = capita_cut)) +
+  labs(title = "Number of Universities", 
+       subtitle = "Divided by State Population") +
+  guides(fill=guide_legend(title="Number of Universities Per Person"))
 
-combined1 %>%
-  mutate(total_cut = cut_interval(total, 4))%>%
+viridis_base <- combined1 %>%
+  mutate(total_cut = cut_number(total, 4))%>%
   ggplot() +
-  geom_sf(aes(fill = total_cut))
+  geom_sf(aes(fill = total_cut)) +
+  labs(title = "Number of Universities in each State") + 
+  guides(fill=guide_legend(title="Number of Universities")) +
+  scale_color_viridis(option ="cividis", labels = scales::dollar)
+
+
+display.brewer.all(type = "div")
+```
+
+
+```{r}
+#importing college data
+
+col_shape <- st_read("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2018/Computing/Homework/hw7/CollegesUniversities/CollegesUniversities.shp")
+
+ggplot(data = col_shape) +
+  geom_sf()
 
 ```
