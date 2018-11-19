@@ -34,26 +34,31 @@ population <- read_csv("/Users/AbigailBergman/Desktop/Grad School/Fall Quarter 2
 
 
 # convert fifty_states to an sf data frame
-(sf_fifty <- st_as_sf(fifty_states, coords = c("long", "lat")) %>% 
-   # convert sets of points to polygons
+(sf_fifty <- st_as_sf(fifty_states, coords = c("long", "lat")) %>% #tell it to use lat and long
+   # convert sets of points to shapes
    group_by(id, piece) %>% 
    summarize(do_union = FALSE) %>%
    st_cast("POLYGON") %>%
-   # convert polygons to multipolygons for states with discontinuous regions
+   # convert shape to multipolygons for states with discontinuous regions
    group_by(id) %>%
    summarize())
 
 #need to do left join
-combined1 <-left_join(schools_by_state %>% mutate(id = tolower(id)), sf_fifty, by = "id") %>%
+combined1 <-left_join(schools_by_state %>% 
+                        mutate(id = tolower(id)), 
+                      sf_fifty, by = "id")%>%
   filter(abb != "AK") %>%
   filter(abb != "HI")
 
-combined <-left_join(combined1, population %>% mutate(id = tolower(id)), by = "id")
+#left join to create full df
+combined <-left_join(combined1, population %>% 
+                       mutate(id = tolower(id)), 
+                     by = "id")
 
 combined <- combined %>%
   mutate(per_capita = total/`2018 Population`)
 
-#graph
+#graph - the rest of this chunk was just testing stuff
 
 ggplot(data = combined) +
   geom_sf(aes(fill = per_capita))
@@ -97,8 +102,9 @@ ggplot(data = college_shape) +
 
 ```{r, include=FALSE}
 
+#make simple features
 st_as_sf(fifty_states, coords = c("long", "lat")) %>% 
-  # convert sets of points to polygons
+  # convert sets of points to shapes
   group_by(id, piece) %>% 
   summarize(do_union = FALSE) %>%
   st_cast("POLYGON")%>%
@@ -107,6 +113,7 @@ st_as_sf(fifty_states, coords = c("long", "lat")) %>%
 
 st_crs(sf_fifty) <- 4326
 
+#make test map
 ggplot(data = combined1) +
   geom_sf() +
   geom_point(data = college_shape, aes(LON, LAT)) 
@@ -124,6 +131,7 @@ combined1 %>%
    scale_size(range = c(0,10)) +
   scale_fill_brewer(palette="PuRd")
 
+#make map of universities per capita
 combined %>%
   mutate(capita_cut = cut_number(per_capita, 4))%>%
   ggplot() +
@@ -134,7 +142,7 @@ combined %>%
     scale_fill_brewer(palette="OrRd")
 
 
-#blank map with colleges
+#blank map with college location
 sf_fifty %>%
    filter(id != "alaska") %>%
   filter(id != "hawaii") %>%
@@ -143,7 +151,7 @@ ggplot() +
   labs(title = "Map 3: Location of Universities in each State") + 
   geom_point(data = college_shape, aes(x = LON, y = LAT, size = TOT_ENROLL), alpha = .2) + 
   guides(size=guide_legend(title="University Enrollment")) +
-  scale_size(range = c(0,10))
+  scale_size(range = c(0,10)) #set point size range
 ```
 
 For this assignment, I was interested in exploring the density of universities in different states. At first, I created several maps to see which one would provide the ideal way to visualize my data. The [Map 1](https://github.com/abbygirlrose/hw07/blob/master/hw7_files/figure-markdown_github/unnamed-chunk-5-1.png) shows the contiguous United States, colored and overlayed with points. The colors show the total number of universities in a given state, split into four groups. The points show the locations of universities, with size of the point denoting total enrollment of the university. According to this map, states including California, Texas and several eastern states have the highest total number of universities.  
